@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habit Tracker</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root{
+    --bg:#f0f4f3;
+    --surface:#ffffff;
+    --primary:#5b9a8b;
+    --primary-hover:#4a8577;
+    --accent:#e8f5e9;
+    --text:#2d3436;
+    --text-light:#636e72;
+    --danger:#e17055;
+    --danger-hover:#d63031;
+    --border:#dfe6e9;
+    --shadow:0 2px 12px rgba(0,0,0,.08);
+    --radius:14px;
+  }
+
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    padding:2rem 1rem 4rem;
+  }
+
+  .container{
+    max-width:540px;
+    margin:0 auto;
+  }
+
+  header{
+    text-align:center;
+    margin-bottom:2rem;
+  }
+
+  header h1{
+    font-size:1.8rem;
+    font-weight:700;
+    letter-spacing:-.02em;
+    color:var(--primary);
+  }
+
+  .date{
+    margin-top:.35rem;
+    font-size:.95rem;
+    color:var(--text-light);
+  }
+
+  /* Add form */
+  .add-form{
+    display:flex;
+    gap:.5rem;
+    margin-bottom:1.8rem;
+  }
+
+  .add-form input{
+    flex:1;
+    padding:.75rem 1rem;
+    border:2px solid var(--border);
+    border-radius:var(--radius);
+    font-size:.95rem;
+    outline:none;
+    transition:border-color .2s;
+    background:var(--surface);
+  }
+
+  .add-form input:focus{
+    border-color:var(--primary);
+  }
+
+  .add-form button{
+    padding:.75rem 1.4rem;
+    border:none;
+    border-radius:var(--radius);
+    background:var(--primary);
+    color:#fff;
+    font-size:.95rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .2s,transform .1s;
+    white-space:nowrap;
+  }
+
+  .add-form button:hover{background:var(--primary-hover)}
+  .add-form button:active{transform:scale(.97)}
+
+  /* Habit cards */
+  .habits{display:flex;flex-direction:column;gap:.75rem}
+
+  .habit-card{
+    display:flex;
+    align-items:center;
+    gap:.85rem;
+    background:var(--surface);
+    border-radius:var(--radius);
+    padding:1rem 1.1rem;
+    box-shadow:var(--shadow);
+    transition:transform .2s,box-shadow .2s;
+    animation:slideIn .3s ease;
+  }
+
+  .habit-card:hover{
+    transform:translateY(-1px);
+    box-shadow:0 4px 18px rgba(0,0,0,.1);
+  }
+
+  @keyframes slideIn{
+    from{opacity:0;transform:translateY(8px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  /* Custom checkbox */
+  .check{
+    position:relative;
+    width:28px;height:28px;flex-shrink:0;
+  }
+
+  .check input{
+    position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:1;margin:0;
+  }
+
+  .check .box{
+    width:28px;height:28px;
+    border:2.5px solid var(--border);
+    border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .25s cubic-bezier(.4,.0,.2,1);
+    background:var(--surface);
+  }
+
+  .check .box svg{
+    width:16px;height:16px;
+    stroke:#fff;stroke-width:3;
+    fill:none;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:20;stroke-dashoffset:20;
+    transition:stroke-dashoffset .3s ease .05s;
+  }
+
+  .check input:checked + .box{
+    background:var(--primary);
+    border-color:var(--primary);
+    transform:scale(1.1);
+  }
+
+  .check input:checked + .box svg{
+    stroke-dashoffset:0;
+  }
+
+  /* Card info */
+  .habit-info{flex:1;min-width:0}
+
+  .habit-name{
+    font-size:1.05rem;
+    font-weight:600;
+    transition:color .2s;
+    word-break:break-word;
+  }
+
+  .habit-card.done .habit-name{
+    color:var(--text-light);
+    text-decoration:line-through;
+  }
+
+  .streak{
+    font-size:.8rem;
+    color:var(--text-light);
+    margin-top:.15rem;
+  }
+
+  .streak span{
+    color:var(--primary);
+    font-weight:700;
+  }
+
+  /* Delete button */
+  .delete-btn{
+    background:none;border:none;cursor:pointer;
+    color:var(--border);
+    padding:4px;border-radius:8px;
+    transition:color .2s,background .2s;
+    flex-shrink:0;
+  }
+
+  .delete-btn:hover{
+    color:var(--danger);
+    background:rgba(225,112,85,.08);
+  }
+
+  .delete-btn svg{width:18px;height:18px}
+
+  /* Empty state */
+  .empty{
+    text-align:center;
+    padding:3rem 1rem;
+    color:var(--text-light);
+  }
+
+  .empty svg{
+    width:56px;height:56px;
+    stroke:var(--border);
+    margin-bottom:.75rem;
+  }
+
+  .empty p{font-size:1rem}
+
+  /* Confetti burst on check */
+  @keyframes pop{
+    0%{transform:scale(1)}
+    50%{transform:scale(1.15)}
+    100%{transform:scale(1)}
+  }
+  .habit-card.pop{animation:pop .3s ease}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Habit Tracker</h1>
+    <div class="date" id="today"></div>
+  </header>
+
+  <form class="add-form" id="addForm">
+    <input type="text" id="habitInput" placeholder="Add a new habit..." maxlength="80" required>
+    <button type="submit">Add</button>
+  </form>
+
+  <div class="habits" id="habits"></div>
+</div>
+
+<script>
+(() => {
+  const STORAGE_KEY = 'habit_tracker_data';
+
+  const $habits = document.getElementById('habits');
+  const $form = document.getElementById('addForm');
+  const $input = document.getElementById('habitInput');
+  const $today = document.getElementById('today');
+
+  const todayStr = () => {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  };
+
+  // Display today's date
+  const now = new Date();
+  $today.textContent = now.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  // Data helpers
+  const load = () => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  };
+  const save = (data) => localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+  // Streak calculation
+  const calcStreak = (completedDays) => {
+    if (!completedDays || completedDays.length === 0) return 0;
+    const sorted = [...completedDays].sort().reverse();
+    const today = todayStr();
+    const yesterday = (() => {
+      const d = new Date(); d.setDate(d.getDate()-1);
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    })();
+
+    // Streak must include today or yesterday to be active
+    if (sorted[0] !== today && sorted[0] !== yesterday) return 0;
+
+    let streak = 1;
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = new Date(sorted[i-1] + 'T00:00:00');
+      const curr = new Date(sorted[i] + 'T00:00:00');
+      const diff = (prev - curr) / 86400000;
+      if (diff === 1) streak++;
+      else break;
+    }
+    return streak;
+  };
+
+  // Render
+  const render = () => {
+    const habits = load();
+    const today = todayStr();
+
+    if (habits.length === 0) {
+      $habits.innerHTML = `
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <p>No habits yet. Add one above!</p>
+        </div>`;
+      return;
+    }
+
+    $habits.innerHTML = habits.map((h, i) => {
+      const done = h.completed && h.completed.includes(today);
+      const streak = calcStreak(h.completed);
+      const streakText = streak > 0
+        ? `<span>${streak}</span> day${streak!==1?'s':''} streak`
+        : 'No streak yet';
+
+      return `
+      <div class="habit-card${done?' done':''}" data-index="${i}">
+        <label class="check">
+          <input type="checkbox" ${done?'checked':''} data-action="toggle" data-index="${i}">
+          <div class="box">
+            <svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>
+          </div>
+        </label>
+        <div class="habit-info">
+          <div class="habit-name">${escapeHtml(h.name)}</div>
+          <div class="streak">${streakText}</div>
+        </div>
+        <button class="delete-btn" data-action="delete" data-index="${i}" title="Delete habit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/>
+            <path d="M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </button>
+      </div>`;
+    }).join('');
+  };
+
+  const escapeHtml = (s) => {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  };
+
+  // Add habit
+  $form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $input.value.trim();
+    if (!name) return;
+    const habits = load();
+    habits.push({ name, completed: [] });
+    save(habits);
+    $input.value = '';
+    render();
+  });
+
+  // Delegated click handling
+  $habits.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const idx = parseInt(el.dataset.index);
+    const habits = load();
+    if (idx < 0 || idx >= habits.length) return;
+
+    if (el.dataset.action === 'toggle') {
+      const today = todayStr();
+      const h = habits[idx];
+      if (!h.completed) h.completed = [];
+      const pos = h.completed.indexOf(today);
+      if (pos === -1) {
+        h.completed.push(today);
+        // Pop animation
+        const card = $habits.querySelector(`.habit-card[data-index="${idx}"]`);
+        if (card) { card.classList.add('pop'); setTimeout(() => card.classList.remove('pop'), 300); }
+      } else {
+        h.completed.splice(pos, 1);
+      }
+      save(habits);
+      render();
+    }
+
+    if (el.dataset.action === 'delete') {
+      habits.splice(idx, 1);
+      save(habits);
+      render();
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
